@@ -1,38 +1,57 @@
 
+use std::io::Error;
 
-use crossterm::terminal::enable_raw_mode;
-use crossterm::terminal::disable_raw_mode;
-use crossterm::event::{read,Event::Key,KeyCode::Char,KeyEvent,KeyModifiers};
+mod terminal;
+use crossterm::event::{read, Event::{self, Key}, KeyCode::{self, Char}, KeyEvent, KeyModifiers};
+use terminal::Terminal;
 pub struct Editor{
     should_quit: bool
 }
 
-
 impl Editor{
-    pub fn new() -> Self{
-        Editor{should_quit: false}
+   
+    pub fn new() -> Editor{
+        Editor { should_quit: false }
     }
-
-    pub fn run(&mut self){
-        enable_raw_mode().unwrap();
-      
-
+    pub fn run(&mut self) -> Result<(),Error>{
+        
+        let my_terminal = Terminal::new();
+        my_terminal.start_up()?;
+        Editor::draw_rows(self)?;
         loop{
-            if let Key(KeyEvent{code,modifiers,kind,state}) = read().unwrap(){
-
-                match code {
-                    Char('q') if  modifiers == KeyModifiers::CONTROL=>{
-                        self.should_quit = true;
-                    },
-                    _=>{}
-                }
-            }
+            let event = read()?;
+            self.listen_for_events(&event)?;
             if self.should_quit{
-                print!("Thlla \r\n");
                 break;
             }
         }
-        disable_raw_mode().unwrap();
+        Terminal::terminate_session()?;
+        Ok(())
+        
+    }
 
+    fn draw_rows(&mut self) ->Result<(),Error>{
+        let height = Terminal::size()?.1;
+        
+        for i in 0..height{
+            print!("~");
+            if i < height-1{
+                print!("\r\n");
+            }
+        }
+        Ok(())
+        
+    }
+
+    fn listen_for_events(&mut self ,event : &Event)->Result<(),Error>{
+        if let Key(KeyEvent{code,modifiers,kind,state}) = *event{
+            match code {
+                Char('q') if modifiers == KeyModifiers::CONTROL=>{
+                    self.should_quit = true;
+                },
+                _=> {}
+            }
+        }
+        Ok(())
     }
 }
