@@ -1,8 +1,8 @@
 
-use std::io::Error;
+use std::io::{stdout, Error, Write};
 
 mod terminal;
-use crossterm::event::{read, Event::{self, Key}, KeyCode::{self, Char}, KeyEvent, KeyModifiers};
+use crossterm::{event::{read, Event::{self, Key}, KeyCode::{self, Char}, KeyEvent, KeyModifiers}, execute, queue, style::Print};
 use terminal::Terminal;
 pub struct Editor{
     should_quit: bool
@@ -13,14 +13,22 @@ impl Editor{
     pub fn new() -> Editor{
         Editor { should_quit: false }
     }
+
+
     pub fn run(&mut self) -> Result<(),Error>{
         
         let my_terminal = Terminal::new();
         my_terminal.start_up()?;
-        Editor::draw_rows(self)?;
+        self.draw_rows()?;
         loop{
             let event = read()?;
             self.listen_for_events(&event)?;
+            Terminal::hide_cursor()?;
+
+            self.refresh_screen()?;
+
+            Terminal::show_cursor()?;
+            
             if self.should_quit{
                 break;
             }
@@ -29,16 +37,25 @@ impl Editor{
         Ok(())
         
     }
-
+    fn refresh_screen(&mut self) -> Result<(),Error>{
+        if self.should_quit{
+            Terminal::terminate_session()?;
+        }else{
+            self.draw_rows()?;  // This is very costy 
+            Terminal::move_cursor_to(0, 0)?;
+        }
+        Ok(())
+    }
     fn draw_rows(&mut self) ->Result<(),Error>{
-        let height = Terminal::size()?.1;
+        let height = Terminal::size()?.height;
         
         for i in 0..height{
-            print!("~");
+            
             if i < height-1{
-                print!("\r\n");
+                queue!(stdout(),Print("~\r\n"))?;
             }
         }
+        stdout().flush()?;
         Ok(())
         
     }

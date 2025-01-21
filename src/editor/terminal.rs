@@ -1,4 +1,4 @@
-use crossterm::cursor::MoveTo;
+use crossterm::cursor::{Hide, MoveTo, Show};
 use crossterm::event::Event;
 use crossterm::event::{read,Event::Key,KeyCode::Char,KeyEvent,KeyModifiers};
 use crossterm::execute;
@@ -7,7 +7,10 @@ use std::io::stdout;
 use std::io::Error;
 
 pub struct Terminal{}
-
+pub struct Size{
+    pub height : u16,
+    pub width : u16
+}
 impl Terminal{
     pub fn new() -> Terminal{
         Terminal{}
@@ -28,12 +31,22 @@ impl Terminal{
         Self::clear_screen()
         
     }
-
+    
     pub fn move_cursor_to(x : u16, y : u16) -> Result<(),Error>{
         execute!(stdout(),MoveTo(x,y))?;
         Ok(())
     }
-    pub fn size() -> Result<(u16,u16),Error>{
-        size()
+    pub fn size() -> Result<Size,Error>{
+        let res = size()?;
+        Ok(Size{
+            height: res.1,
+            width : res.0
+        })
+    }
+    pub fn hide_cursor() -> Result<(),Error>{
+        execute!(stdout(),Hide)
+    }
+    pub fn show_cursor() -> Result<(),Error>{
+        execute!(stdout(),Show)
     }
 }
